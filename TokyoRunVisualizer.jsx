@@ -4,9 +4,10 @@ import { OrbitControls, Stats } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { config } from './config';
-import { parseGPX, processTracks, createTrailGeometry, getPointOnCurve, calculateBoundingBox } from './utils';
+import { parseGPX, processTracks, createTrailGeometry, getPointOnCurve, calculateBoundingBox, calculateCenter } from './utils';
 import { useCameraAnimation } from './hooks/useCameraAnimation';
 import { InfoOverlay } from './components/InfoOverlay';
+import { Stations } from './components/Stations';
 
 /**
  * Component that renders animated runner orbs using InstancedMesh for performance
@@ -149,7 +150,7 @@ function Lighting() {
 /**
  * Main scene component that contains all 3D elements
  */
-function Scene({ tracks, onFeaturedTrackChange }) {
+function Scene({ tracks, center, onFeaturedTrackChange }) {
   const orbitControlsRef = useRef();
   const { featuredTrackIndex, isTransitioning } = useCameraAnimation(tracks, orbitControlsRef);
 
@@ -170,6 +171,7 @@ function Scene({ tracks, onFeaturedTrackChange }) {
       <Floor />
       <TrailLines tracks={tracks} />
       <RunnerOrbs tracks={tracks} featuredTrackIndex={featuredTrackIndex} />
+      {center && <Stations center={center} />}
       <OrbitControls
         ref={orbitControlsRef}
         enableDamping
@@ -193,6 +195,7 @@ export default function TokyoRunVisualizer({ gpxFilePath }) {
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
   const [featuredTrackIndex, setFeaturedTrackIndex] = useState(null);
+  const [center, setCenter] = useState(null);
 
   useEffect(() => {
     async function loadGPXData() {
@@ -213,6 +216,11 @@ export default function TokyoRunVisualizer({ gpxFilePath }) {
         const parsedTracks = parseGPX(gpxString);
         console.timeEnd('Parse GPX');
         console.log(`Parsed ${parsedTracks.length} tracks`);
+
+        // Calculate center for station positioning
+        const trackCenter = calculateCenter(parsedTracks);
+        console.log('Center:', trackCenter);
+        setCenter(trackCenter);
 
         // Process tracks (convert to 3D, create curves)
         console.time('Process Tracks');
@@ -321,7 +329,7 @@ export default function TokyoRunVisualizer({ gpxFilePath }) {
         }}
         style={{ background: config.backgroundColor }}
       >
-        <Scene tracks={tracks} onFeaturedTrackChange={setFeaturedTrackIndex} />
+        <Scene tracks={tracks} center={center} onFeaturedTrackChange={setFeaturedTrackIndex} />
 
         <EffectComposer>
           <Bloom

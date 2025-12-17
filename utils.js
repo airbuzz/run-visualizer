@@ -83,7 +83,7 @@ function downsampleTrack(points, maxPoints) {
  * @param {Array} tracks - Array of track objects with points and metadata
  * @returns {Object} Center point {lat, lon}
  */
-function calculateCenter(tracks) {
+export function calculateCenter(tracks) {
   let totalLat = 0;
   let totalLon = 0;
   let totalPoints = 0;

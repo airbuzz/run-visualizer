@@ -106,17 +106,17 @@ export function InfoOverlay({ featuredTrack }) {
       color: '#FFFFFF',
       zIndex: 1000,
     }}>
-      {/* Run number - large cyan text */}
+      {/* Run number - large white text */}
       <div style={{
         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif',
         fontWeight: 900,
         fontSize: '35px',
-        color: '#00FFFF',
+        color: '#FFFFFF',
         marginBottom: '8px',
         letterSpacing: '-0.5px',
         ...transitionStyle,
       }}>
-        Run{metadata.index + 1}
+        RUN{metadata.index + 1}
       </div>
 
       {/* Date */}
