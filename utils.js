@@ -15,6 +15,11 @@ export function parseGPX(gpxString) {
 
   for (let i = 0; i < trkElements.length; i++) {
     const trkElement = trkElements[i];
+
+    // Extract timestamp from <time> element at track level
+    const timeElements = trkElement.getElementsByTagName('time');
+    const timestamp = timeElements.length > 0 ? timeElements[0].textContent.trim() : null;
+
     const trkpts = trkElement.getElementsByTagName('trkpt');
 
     if (trkpts.length === 0) continue;
@@ -35,7 +40,13 @@ export function parseGPX(gpxString) {
     }
 
     if (points.length > 0) {
-      tracks.push(points);
+      tracks.push({
+        points: points,
+        metadata: {
+          timestamp: timestamp,
+          index: i
+        }
+      });
     }
   }
 
@@ -69,7 +80,7 @@ function downsampleTrack(points, maxPoints) {
 
 /**
  * Calculate the center point (centroid) of all GPS coordinates
- * @param {Array} tracks - Array of tracks, each containing points with lat/lon
+ * @param {Array} tracks - Array of track objects with points and metadata
  * @returns {Object} Center point {lat, lon}
  */
 function calculateCenter(tracks) {
@@ -77,7 +88,8 @@ function calculateCenter(tracks) {
   let totalLon = 0;
   let totalPoints = 0;
 
-  tracks.forEach(track => {
+  tracks.forEach(trackData => {
+    const track = trackData.points;
     track.forEach(point => {
       totalLat += point.lat;
       totalLon += point.lon;
@@ -117,7 +129,7 @@ function gpsToCartesian(lat, lon, ele, center) {
 
 /**
  * Process all tracks: downsample, convert to 3D coordinates, and create curves
- * @param {Array} tracks - Array of tracks from parseGPX
+ * @param {Array} tracks - Array of track objects from parseGPX with points and metadata
  * @returns {Array} Array of processed track objects with curves and 3D points
  */
 export function processTracks(tracks) {
@@ -128,7 +140,10 @@ export function processTracks(tracks) {
 
   const processedTracks = [];
 
-  tracks.forEach((track, index) => {
+  tracks.forEach((trackData, index) => {
+    const track = trackData.points;
+    const metadata = trackData.metadata;
+
     // Downsample if needed
     const downsampledTrack = downsampleTrack(track, config.maxPointsPerTrack);
 
@@ -155,7 +170,14 @@ export function processTracks(tracks) {
       points: points3D,
       curve: curve,
       originalPointCount: track.length,
-      processedPointCount: points3D.length
+      processedPointCount: points3D.length,
+      metadata: {
+        ...metadata,
+        startLat: track[0].lat,  // First point
+        startLon: track[0].lon,
+        endLat: track[track.length - 1].lat,  // Last point
+        endLon: track[track.length - 1].lon,
+      }
     });
   });
 
@@ -239,4 +261,94 @@ export function calculateBoundingBox(processedTracks) {
       z: bounds.maxZ - bounds.minZ
     }
   };
+}
+
+/**
+ * Calculate bounding box for a single track
+ * @param {Object} track - Single track object with points
+ * @returns {Object} Bounding box similar to calculateBoundingBox
+ */
+export function calculateTrackBoundingBox(track) {
+  const bounds = {
+    minX: Infinity, maxX: -Infinity,
+    minY: Infinity, maxY: -Infinity,
+    minZ: Infinity, maxZ: -Infinity
+  };
+
+  track.points.forEach(point => {
+    bounds.minX = Math.min(bounds.minX, point.x);
+    bounds.maxX = Math.max(bounds.maxX, point.x);
+    bounds.minY = Math.min(bounds.minY, point.y);
+    bounds.maxY = Math.max(bounds.maxY, point.y);
+    bounds.minZ = Math.min(bounds.minZ, point.z);
+    bounds.maxZ = Math.max(bounds.maxZ, point.z);
+  });
+
+  return {
+    min: { x: bounds.minX, y: bounds.minY, z: bounds.minZ },
+    max: { x: bounds.maxX, y: bounds.maxY, z: bounds.maxZ },
+    center: {
+      x: (bounds.minX + bounds.maxX) / 2,
+      y: (bounds.minY + bounds.maxY) / 2,
+      z: (bounds.minZ + bounds.maxZ) / 2
+    },
+    size: {
+      x: bounds.maxX - bounds.minX,
+      y: bounds.maxY - bounds.minY,
+      z: bounds.maxZ - bounds.minZ
+    }
+  };
+}
+
+/**
+ * Calculate optimal camera position and target for viewing a track
+ * @param {Object} track - Track object with points
+ * @param {number} cameraFov - Camera field of view in degrees
+ * @returns {Object} { position: Vector3, target: Vector3, bbox: Object }
+ */
+export function calculateOptimalCameraPosition(track, cameraFov) {
+  const bbox = calculateTrackBoundingBox(track);
+  const cfg = config.cameraAnimation;
+
+  // Calculate required distance to fit track in view
+  const maxDimension = Math.max(bbox.size.x, bbox.size.z);
+  const fovRadians = (cameraFov * Math.PI) / 180;
+  const baseDistance = (maxDimension / 2) / Math.tan(fovRadians / 2);
+  const distance = Math.max(
+    cfg.minDistance,
+    Math.min(cfg.maxDistance, baseDistance * cfg.distancePaddingFactor)
+  );
+
+  // Randomize both horizontal angle (0-360 degrees) and vertical angle (10-90 degrees)
+  const horizontalAngle = Math.random() * Math.PI * 2;
+  const verticalAngleDegrees = 10 + Math.random() * 80; // Random between 10-90 degrees
+  const verticalAngle = (verticalAngleDegrees * Math.PI) / 180;
+
+  const heightOffset = distance * Math.sin(verticalAngle);
+  const horizontalDistance = distance * Math.cos(verticalAngle);
+
+  const position = new THREE.Vector3(
+    bbox.center.x + horizontalDistance * Math.cos(horizontalAngle),
+    bbox.center.y + heightOffset + (bbox.size.y * cfg.heightOffsetFactor),
+    bbox.center.z + horizontalDistance * Math.sin(horizontalAngle)
+  );
+
+  const target = new THREE.Vector3(
+    bbox.center.x,
+    bbox.center.y,
+    bbox.center.z
+  );
+
+  return { position, target, bbox };
+}
+
+/**
+ * Cubic ease-in-out function for smooth transitions
+ * @param {number} t - Progress from 0 to 1
+ * @returns {number} Eased value from 0 to 1
+ */
+export function easeInOutCubic(t) {
+  return t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }

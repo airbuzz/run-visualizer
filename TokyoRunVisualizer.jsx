@@ -5,25 +5,28 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { config } from './config';
 import { parseGPX, processTracks, createTrailGeometry, getPointOnCurve, calculateBoundingBox } from './utils';
+import { useCameraAnimation } from './hooks/useCameraAnimation';
+import { InfoOverlay } from './components/InfoOverlay';
 
 /**
  * Component that renders animated runner orbs using InstancedMesh for performance
  */
-function RunnerOrbs({ tracks }) {
-  const meshRef = useRef();
+function RunnerOrbs({ tracks, featuredTrackIndex }) {
+  const nonFeaturedMeshRef = useRef();
+  const featuredMeshRef = useRef();
   const startTimeRef = useRef(Date.now());
   const tempObject = useMemo(() => new THREE.Object3D(), []);
-  const tempVector = useMemo(() => new THREE.Vector3(), []);
 
   const count = tracks.length;
 
   useFrame(() => {
-    if (!meshRef.current) return;
-
     const elapsed = (Date.now() - startTimeRef.current) / 1000;
     const progress = config.animationLoop
       ? (elapsed % config.animationDuration) / config.animationDuration
       : Math.min(elapsed / config.animationDuration, 1);
+
+    let nonFeaturedIndex = 0;
+    let featuredIndex = 0;
 
     // Update each instance
     for (let i = 0; i < count; i++) {
@@ -33,28 +36,70 @@ function RunnerOrbs({ tracks }) {
       // Get position on curve based on progress
       const point = getPointOnCurve(track.curve, progress);
 
-      // Set position and scale
       tempObject.position.copy(point);
-      tempObject.scale.set(1, 1, 1);
-      tempObject.updateMatrix();
 
-      // Update instance matrix
-      meshRef.current.setMatrixAt(i, tempObject.matrix);
+      if (i === featuredTrackIndex) {
+        // Featured orb - larger size
+        tempObject.scale.set(
+          config.featuredRun.size,
+          config.featuredRun.size,
+          config.featuredRun.size
+        );
+        tempObject.updateMatrix();
+
+        if (featuredMeshRef.current) {
+          featuredMeshRef.current.setMatrixAt(featuredIndex, tempObject.matrix);
+          featuredIndex++;
+        }
+      } else {
+        // Non-featured orb - normal size
+        tempObject.scale.set(1, 1, 1);
+        tempObject.updateMatrix();
+
+        if (nonFeaturedMeshRef.current) {
+          nonFeaturedMeshRef.current.setMatrixAt(nonFeaturedIndex, tempObject.matrix);
+          nonFeaturedIndex++;
+        }
+      }
     }
 
-    meshRef.current.instanceMatrix.needsUpdate = true;
+    if (nonFeaturedMeshRef.current) {
+      nonFeaturedMeshRef.current.instanceMatrix.needsUpdate = true;
+      nonFeaturedMeshRef.current.count = nonFeaturedIndex;
+    }
+
+    if (featuredMeshRef.current) {
+      featuredMeshRef.current.instanceMatrix.needsUpdate = true;
+      featuredMeshRef.current.count = featuredIndex;
+    }
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[null, null, count]}>
-      <sphereGeometry args={[config.orbSize, config.orbSegments, config.orbSegments]} />
-      <meshStandardMaterial
-        color={config.orbColor}
-        emissive={config.orbColor}
-        emissiveIntensity={config.orbIntensity}
-        toneMapped={false}
-      />
-    </instancedMesh>
+    <>
+      {/* Non-featured orbs (dimmed) */}
+      <instancedMesh ref={nonFeaturedMeshRef} args={[null, null, count]}>
+        <sphereGeometry args={[config.orbSize, config.orbSegments, config.orbSegments]} />
+        <meshStandardMaterial
+          color={config.orbColor}
+          emissive={config.orbColor}
+          emissiveIntensity={config.orbIntensity * config.dimmedRuns.emissiveIntensityFactor}
+          toneMapped={false}
+          opacity={config.dimmedRuns.opacityFactor}
+          transparent
+        />
+      </instancedMesh>
+
+      {/* Featured orb (highlighted) */}
+      <instancedMesh ref={featuredMeshRef} args={[null, null, 1]}>
+        <sphereGeometry args={[config.orbSize, config.orbSegments, config.orbSegments]} />
+        <meshStandardMaterial
+          color={config.featuredRun.color}
+          emissive={config.featuredRun.color}
+          emissiveIntensity={config.featuredRun.emissiveIntensity}
+          toneMapped={false}
+        />
+      </instancedMesh>
+    </>
   );
 }
 
@@ -104,7 +149,17 @@ function Lighting() {
 /**
  * Main scene component that contains all 3D elements
  */
-function Scene({ tracks }) {
+function Scene({ tracks, onFeaturedTrackChange }) {
+  const orbitControlsRef = useRef();
+  const { featuredTrackIndex, isTransitioning } = useCameraAnimation(tracks, orbitControlsRef);
+
+  // Notify parent component of featured track changes
+  useEffect(() => {
+    if (onFeaturedTrackChange) {
+      onFeaturedTrackChange(featuredTrackIndex);
+    }
+  }, [featuredTrackIndex, onFeaturedTrackChange]);
+
   if (!tracks || tracks.length === 0) {
     return null;
   }
@@ -114,13 +169,15 @@ function Scene({ tracks }) {
       <Lighting />
       <Floor />
       <TrailLines tracks={tracks} />
-      <RunnerOrbs tracks={tracks} />
+      <RunnerOrbs tracks={tracks} featuredTrackIndex={featuredTrackIndex} />
       <OrbitControls
+        ref={orbitControlsRef}
         enableDamping
         dampingFactor={0.05}
         rotateSpeed={0.5}
         zoomSpeed={0.8}
         panSpeed={0.5}
+        enabled={!isTransitioning}
       />
       {config.showStats && <Stats />}
     </>
@@ -135,6 +192,7 @@ export default function TokyoRunVisualizer({ gpxFilePath }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
+  const [featuredTrackIndex, setFeaturedTrackIndex] = useState(null);
 
   useEffect(() => {
     async function loadGPXData() {
@@ -244,23 +302,9 @@ export default function TokyoRunVisualizer({ gpxFilePath }) {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      {stats && (
-        <div style={{
-          position: 'absolute',
-          top: '20px',
-          left: '20px',
-          color: config.orbColor,
-          fontFamily: 'monospace',
-          fontSize: '14px',
-          zIndex: 1000,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          padding: '10px',
-          borderRadius: '5px'
-        }}>
-          <div>Tracks: {stats.totalTracks}</div>
-          <div>Area: {Math.round(stats.boundingBox.size.x / 10)}km × {Math.round(stats.boundingBox.size.z / 10)}km</div>
-          <div>Duration: {config.animationDuration}s</div>
-        </div>
+      {/* Info overlay for featured track */}
+      {tracks && featuredTrackIndex !== null && (
+        <InfoOverlay featuredTrack={tracks[featuredTrackIndex]} />
       )}
 
       <Canvas
@@ -277,7 +321,7 @@ export default function TokyoRunVisualizer({ gpxFilePath }) {
         }}
         style={{ background: config.backgroundColor }}
       >
-        <Scene tracks={tracks} />
+        <Scene tracks={tracks} onFeaturedTrackChange={setFeaturedTrackIndex} />
 
         <EffectComposer>
           <Bloom

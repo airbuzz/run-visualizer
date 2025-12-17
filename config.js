@@ -44,4 +44,42 @@ export const config = {
 
   // Stats
   showStats: false,
+
+  // Camera Animation Settings
+  cameraAnimation: {
+    enabled: true,
+    intervalSeconds: 4,          // Time between track changes
+    transitionSeconds: 1.5,      // Duration of camera transition
+    inactivityTimeout: 3,        // Seconds of inactivity before resuming auto-animation
+    viewingAngleHorizontal: 45,  // Degrees
+    viewingAngleVertical: 30,    // Degrees
+    distancePaddingFactor: 1.8,  // Camera distance multiplier
+    minDistance: 50,             // Minimum camera distance
+    maxDistance: 300,            // Maximum camera distance
+    heightOffsetFactor: 0.3,     // Height above track center
+  },
+
+  // Featured Run Highlight Settings
+  featuredRun: {
+    color: '#FFFF00',            // Bright yellow
+    emissiveIntensity: 4.0,      // Brighter than normal orbs
+    size: 1.2,                   // Larger than normal orbs
+  },
+
+  // Dimmed Runs Settings
+  dimmedRuns: {
+    opacityFactor: 0.4,          // Reduce opacity to 40%
+    emissiveIntensityFactor: 0.6, // Reduce glow
+  },
+
+  // Info Overlay Settings
+  infoOverlay: {
+    enabled: true,
+    position: 'bottom-right',    // or 'top-right', 'bottom-left', etc.
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    textColor: '#00FFFF',
+    padding: '15px',
+    borderRadius: '8px',
+    fontSize: '14px',
+  },
 };
