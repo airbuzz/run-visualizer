@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { config } from '../config';
+import Barcode from 'react-barcode';
 
 const GEOAPIFY_API_KEY = '1739bdee3fcd44baae35f084f874c881';
 
@@ -90,6 +91,13 @@ export function InfoOverlay({ featuredTrack }) {
   const displayLat = metadata.startLat?.toFixed(6) || 'N/A';
   const displayLon = metadata.startLon?.toFixed(6) || 'N/A';
 
+  // Format barcode data
+  const runNumber = (metadata.index + 1).toString().padStart(3, '0');
+  const formattedDate = metadata.timestamp ?
+    metadata.timestamp.replace(/-/g, '') :
+    'UNKNOWN';
+  const barcodeValue = `RUN${runNumber}-${formattedDate}`;
+
   // Transition style for blur effect
   const transitionStyle = {
     transition: 'opacity 0.3s ease-in-out, filter 0.3s ease-in-out',
@@ -116,27 +124,37 @@ export function InfoOverlay({ featuredTrack }) {
         letterSpacing: '-0.5px',
         ...transitionStyle,
       }}>
-        <span style={{ opacity: 0.75, color: '#FF1493' }}>RUN</span>{metadata.index + 1}
+        <span style={{ opacity: 0.75, color: '#FF1493' }}>RUN</span>{' '}{metadata.index + 1}
       </div>
 
       {/* Date */}
       <div style={{
         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif',
-        fontWeight: 900,
-        fontSize: '22px',
+        fontWeight: 400,
+        fontSize: '27px',
         color: '#FFFFFF',
         marginBottom: '12px',
         letterSpacing: '-0.3px',
         ...transitionStyle,
       }}>
-        {metadata.timestamp || 'Unknown'}
+        {(() => {
+          if (!metadata.timestamp) return 'Unknown';
+          const parts = metadata.timestamp.split('-');
+          if (parts.length !== 3) return metadata.timestamp;
+          const [year, month, day] = parts;
+          return (
+            <>
+              <span style={{ fontWeight: 900 }}>{year}</span>{' '}{month}<span style={{ fontWeight: 900 }}>{day}</span>
+            </>
+          );
+        })()}
       </div>
 
       {/* Location route - no blur, just fade */}
       <div style={{
         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif',
         fontWeight: 700,
-        fontSize: '15px',
+        fontSize: '12px',
         color: '#FFFFFF',
         marginBottom: '8px',
         opacity: 0.9,
@@ -147,7 +165,7 @@ export function InfoOverlay({ featuredTrack }) {
       {/* GPS Coordinates */}
       <div style={{
         fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", monospace',
-        fontSize: '13px',
+        fontSize: '12px',
         color: '#FFFFFF',
         opacity: 0.7,
         letterSpacing: '0.5px',
@@ -155,6 +173,29 @@ export function InfoOverlay({ featuredTrack }) {
       }}>
         {displayLat}, {displayLon}
       </div>
+
+      {/* Barcode */}
+      {metadata.timestamp && (
+        <div style={{
+          marginTop: '16px',
+          ...transitionStyle,
+        }}>
+          <Barcode
+            value={barcodeValue}
+            format="CODE128"
+            width={1}
+            height={25}
+            displayValue={false}
+            fontSize={11}
+            fontOptions=""
+            font="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', monospace"
+            textMargin={4}
+            margin={0}
+            background="transparent"
+            lineColor="#FFFFFF"
+          />
+        </div>
+      )}
     </div>
   );
 }
