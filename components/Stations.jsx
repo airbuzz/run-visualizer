@@ -11,6 +11,8 @@ export function Stations({ center }) {
     { name: 'OJI STATION | 王子駅', lat: 35.7529945, lon: 139.7352965 },
     { name: 'SUGAMO STATION | 巣鴨駅', lat: 35.7334192, lon: 139.7367099 },
     { name: 'UENO STATION | 上野駅', lat: 35.7115601, lon: 139.7697779 },
+    { name: 'NIPPORI STATION | 日暮里駅', lat: 35.7281578, lon: 139.7680665 },
+    { name: 'IMPERIAL PALACE | 皇居', lat: 35.6824, lon: 139.7527 },
   ];
 
   // Convert GPS to 3D coordinates (same as track conversion)
