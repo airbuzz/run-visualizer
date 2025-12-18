@@ -8,11 +8,12 @@ import * as THREE from 'three';
  */
 export function Stations({ center }) {
   const stations = [
-    { name: 'OJI STATION | 王子駅', lat: 35.7529945, lon: 139.7352965 },
-    { name: 'SUGAMO STATION | 巣鴨駅', lat: 35.7334192, lon: 139.7367099 },
-    { name: 'UENO STATION | 上野駅', lat: 35.7115601, lon: 139.7697779 },
-    { name: 'NIPPORI STATION | 日暮里駅', lat: 35.7281578, lon: 139.7680665 },
-    { name: 'IMPERIAL PALACE | 皇居', lat: 35.6824, lon: 139.7527 },
+    { name: '王子駅', lat: 35.7529945, lon: 139.7352965 },
+    { name: '巣鴨駅', lat: 35.7334192, lon: 139.7367099 },
+    { name: '上野駅', lat: 35.7115601, lon: 139.7697779 },
+    { name: '日暮里駅', lat: 35.7281578, lon: 139.7680665 },
+    { name: '皇居', lat: 35.6824, lon: 139.7527 },
+    { name: '浅草駅', lat: 35.7098669, lon: 139.7945926 },
   ];
 
   // Convert GPS to 3D coordinates (same as track conversion)

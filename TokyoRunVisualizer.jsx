@@ -29,7 +29,7 @@ function RunnerOrbs({ tracks, featuredTrackIndex }) {
     // Blinking effect for featured orb - oscillates between high and higher intensity
     const blinkSpeed = 3; // Blinks per second
     const blinkProgress = (Math.sin(elapsed * blinkSpeed * Math.PI * 2) + 1) / 2;
-    const blinkIntensity = 6 + blinkProgress * 4; // Oscillates between 6 and 10
+    const blinkIntensity = 10 + blinkProgress * 8; // Oscillates between 10 and 18
 
     let nonFeaturedIndex = 0;
     let featuredIndex = 0;
@@ -99,11 +99,11 @@ function RunnerOrbs({ tracks, featuredTrackIndex }) {
 
       {/* Featured orb (blinking white with radiant light) */}
       <instancedMesh ref={featuredMeshRef} args={[null, null, 1]}>
-        <sphereGeometry args={[config.orbSize, config.orbSegments, config.orbSegments]} />
+        <sphereGeometry args={[config.orbSize * 1.5, config.orbSegments, config.orbSegments]} />
         <meshStandardMaterial
           color="#FFFFFF"
           emissive="#FFFFFF"
-          emissiveIntensity={8}
+          emissiveIntensity={12}
           toneMapped={false}
         />
       </instancedMesh>
