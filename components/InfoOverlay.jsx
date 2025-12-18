@@ -124,7 +124,7 @@ export function InfoOverlay({ featuredTrack }) {
         letterSpacing: '-0.5px',
         ...transitionStyle,
       }}>
-        <span style={{ opacity: 0.75, color: '#FF1493' }}>RUN</span>{' '}{metadata.index + 1}
+        <span style={{ opacity: 0.75, color: '#FF1493', fontWeight: 900, fontSize: '37px' }}>RUN</span>{' '}<span style={{ fontWeight: 600 }}>{metadata.index + 1}</span>
       </div>
 
       {/* Date */}
