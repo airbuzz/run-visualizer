@@ -347,6 +347,49 @@ export default function TokyoRunVisualizer({ gpxFilePath }) {
           />
         </EffectComposer>
       </Canvas>
+
+      {/* Footer links */}
+      <div style={{
+        position: 'absolute',
+        bottom: '15px',
+        right: '15px',
+        display: 'flex',
+        gap: '15px',
+        fontFamily: 'monospace',
+        fontSize: '12px',
+        color: '#888',
+        zIndex: 100
+      }}>
+        <a
+          href="https://dunes.jp"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: '#888',
+            textDecoration: 'none',
+            transition: 'color 0.2s'
+          }}
+          onMouseEnter={(e) => e.target.style.color = config.orbColor}
+          onMouseLeave={(e) => e.target.style.color = '#888'}
+        >
+          Made By Dunes
+        </a>
+        <span style={{ color: '#444' }}>|</span>
+        <a
+          href="https://github.com/airbuzz/run-visualizer"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: '#888',
+            textDecoration: 'none',
+            transition: 'color 0.2s'
+          }}
+          onMouseEnter={(e) => e.target.style.color = config.orbColor}
+          onMouseLeave={(e) => e.target.style.color = '#888'}
+        >
+          View On GitHub
+        </a>
+      </div>
     </div>
   );
 }
