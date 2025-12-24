@@ -9,11 +9,15 @@ import * as THREE from 'three';
 export function Stations({ center }) {
   const stations = [
     { name: '王子駅', lat: 35.7529945, lon: 139.7352965 },
-    { name: '巣鴨駅', lat: 35.7334192, lon: 139.7367099 },
+    { name: '巣鴨駅', lat: 35.733163, lon: 139.738998 },
     { name: '上野駅', lat: 35.7115601, lon: 139.7697779 },
     { name: '日暮里駅', lat: 35.7281578, lon: 139.7680665 },
     { name: '皇居', lat: 35.6824, lon: 139.7527 },
     { name: '浅草駅', lat: 35.7098669, lon: 139.7945926 },
+    { name: '池袋駅', lat: 35.729868, lon: 139.711442 },
+    { name: '駒込駅', lat: 35.736601, lon: 139.746819 },
+    { name: '大塚駅', lat: 35.731823, lon: 139.727514 },
+    { name: '千石駅', lat: 35.727946, lon: 139.744849 },
   ];
 
   // Convert GPS to 3D coordinates (same as track conversion)
